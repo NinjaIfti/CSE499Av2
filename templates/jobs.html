@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}My Jobs - Lecture AI{% endblock %}
+
+{% block content %}
+<div class="jobs-container">
+    <h2>My Jobs</h2>
+    
+    {% if jobs %}
+        <div class="jobs-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Job ID</th>
+                        <th>Created</th>
+                        <th>OCR Status</th>
+                        <th>Whisper Status</th>
+                        <th>LLM Status</th>
+                        <th>Final Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for job in jobs %}
+                        <tr>
+                            <td>#{{ job.id }}</td>
+                            <td>{{ job.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                            <td><span class="status-badge status-{{ job.ocr_status }}">{{ job.ocr_status }}</span></td>
+                            <td><span class="status-badge status-{{ job.whisper_status }}">{{ job.whisper_status }}</span></td>
+                            <td><span class="status-badge status-{{ job.llm_status }}">{{ job.llm_status }}</span></td>
+                            <td><span class="status-badge status-{{ job.final_status }}">{{ job.final_status }}</span></td>
+                            <td>
+                                <a href="{{ url_for('job_status', job_id=job.id) }}" class="btn btn-small">View</a>
+                                {% if job.final_status == 'done' and job.lecture %}
+                                    <a href="{{ url_for('lecture_view', lecture_id=job.lecture.id) }}" class="btn btn-small">View Lecture</a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <p>No jobs yet. <a href="{{ url_for('upload') }}">Upload your first lecture video</a></p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

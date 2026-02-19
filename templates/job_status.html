@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}Job Status #{{ job.id }} - Lecture AI{% endblock %}
+
+{% block content %}
+<div class="job-status-container">
+    <h2>Job Status #{{ job.id }}</h2>
+    
+    <div class="status-grid">
+        <div class="status-card">
+            <h3>OCR Status</h3>
+            <span class="status-badge status-{{ job.ocr_status }}">{{ job.ocr_status }}</span>
+        </div>
+        <div class="status-card">
+            <h3>Whisper Status</h3>
+            <span class="status-badge status-{{ job.whisper_status }}">{{ job.whisper_status }}</span>
+        </div>
+        <div class="status-card">
+            <h3>LLM Status</h3>
+            <span class="status-badge status-{{ job.llm_status }}">{{ job.llm_status }}</span>
+        </div>
+        <div class="status-card">
+            <h3>Final Status</h3>
+            <span class="status-badge status-{{ job.final_status }}">{{ job.final_status }}</span>
+        </div>
+    </div>
+    
+    <div class="job-info">
+        <p><strong>Created:</strong> {{ job.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+        <p><strong>Updated:</strong> {{ job.updated_at.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+        <p><strong>Video Path:</strong> {{ job.video_path }}</p>
+    </div>
+    
+    {% if job.final_status == 'done' and job.lecture %}
+        <div class="action-buttons">
+            <a href="{{ url_for('lecture_view', lecture_id=job.lecture.id) }}" class="btn btn-primary">View Lecture</a>
+            <a href="{{ url_for('lecture_chat', lecture_id=job.lecture.id) }}" class="btn btn-secondary">Chat with Lecture</a>
+        </div>
+    {% elif job.final_status == 'failed' %}
+        <div class="error-box">
+            <p>Job processing failed. Please check the logs or try uploading again.</p>
+        </div>
+    {% else %}
+        <div class="info-box">
+            <p>Job is being processed. This page will auto-refresh.</p>
+        </div>
+    {% endif %}
+</div>
+
+{% if job.final_status not in ['done', 'failed'] %}
+<script>
+    setTimeout(function() {
+        location.reload();
+    }, 5000);
+</script>
+{% endif %}
+{% endblock %}

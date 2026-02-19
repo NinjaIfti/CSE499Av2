@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}Home - Lecture AI{% endblock %}
+
+{% block content %}
+<div class="hero">
+    <h1>Welcome to Lecture AI</h1>
+    <p class="subtitle">Transform lecture videos into structured, searchable, and interactive learning content</p>
+    
+    {% if user %}
+        <div class="hero-actions">
+            <a href="{{ url_for('upload') }}" class="btn btn-primary">Upload Lecture Video</a>
+            <a href="{{ url_for('jobs') }}" class="btn btn-secondary">View My Jobs</a>
+        </div>
+        
+        {% if recent_jobs %}
+            <div class="recent-jobs">
+                <h2>Recent Jobs</h2>
+                <div class="job-list">
+                    {% for job in recent_jobs %}
+                        <div class="job-card">
+                            <div class="job-header">
+                                <span class="job-id">Job #{{ job.id }}</span>
+                                <span class="job-status status-{{ job.final_status }}">{{ job.final_status }}</span>
+                            </div>
+                            <div class="job-meta">
+                                <span>Created: {{ job.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                            </div>
+                            <div class="job-statuses">
+                                <span class="status-badge">OCR: {{ job.ocr_status }}</span>
+                                <span class="status-badge">Whisper: {{ job.whisper_status }}</span>
+                                <span class="status-badge">LLM: {{ job.llm_status }}</span>
+                            </div>
+                            <a href="{{ url_for('job_status', job_id=job.id) }}" class="btn btn-small">View Details</a>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+    {% else %}
+        <div class="hero-actions">
+            <a href="{{ url_for('register') }}" class="btn btn-primary">Get Started</a>
+            <a href="{{ url_for('login') }}" class="btn btn-secondary">Login</a>
+        </div>
+        
+        <div class="features">
+            <div class="feature-card">
+                <h3>🎥 OCR Processing</h3>
+                <p>Extract text from board and slides using advanced OCR</p>
+            </div>
+            <div class="feature-card">
+                <h3>🎙️ Speech-to-Text</h3>
+                <p>Transcribe audio with timestamp alignment using Whisper</p>
+            </div>
+            <div class="feature-card">
+                <h3>🧠 AI Structuring</h3>
+                <p>Generate structured notes, summaries, and key points</p>
+            </div>
+            <div class="feature-card">
+                <h3>💬 Interactive Chat</h3>
+                <p>Ask questions and get context-aware answers</p>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}Lecture #{{ lecture.id }} - Lecture AI{% endblock %}
+
+{% block content %}
+<div class="lecture-container">
+    <div class="lecture-header">
+        <h2>Lecture #{{ lecture.id }}</h2>
+        <div class="lecture-actions">
+            <a href="{{ url_for('lecture_chat', lecture_id=lecture.id) }}" class="btn btn-primary">Chat with Lecture</a>
+            <a href="{{ url_for('job_status', job_id=job.id) }}" class="btn btn-secondary">View Job</a>
+        </div>
+    </div>
+    
+    {% if lecture.summary %}
+        <div class="summary-section">
+            <h3>Summary</h3>
+            <div class="summary-content">{{ lecture.summary }}</div>
+        </div>
+    {% endif %}
+    
+    {% if notes %}
+        <div class="notes-section">
+            <h3>Structured Notes</h3>
+            <div class="notes-content">
+                <pre>{{ notes | tojson(indent=2) }}</pre>
+            </div>
+        </div>
+    {% endif %}
+    
+    {% if transcript %}
+        <div class="transcript-section">
+            <h3>Transcript</h3>
+            <div class="transcript-content">
+                <pre>{{ transcript | tojson(indent=2) }}</pre>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
