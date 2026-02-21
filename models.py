@@ -40,6 +40,7 @@ class Job(db.Model):
     whisper_status = db.Column(db.String(20), default='pending')
     llm_status = db.Column(db.String(20), default='pending')
     final_status = db.Column(db.String(20), default='pending')
+    status_message = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -54,6 +55,7 @@ class Job(db.Model):
             'whisper_status': self.whisper_status,
             'llm_status': self.llm_status,
             'final_status': self.final_status,
+            'status_message': self.status_message,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
@@ -64,10 +66,18 @@ class Job(db.Model):
     def has_failed(self):
         return self.final_status == 'failed'
     
+    def is_cancelled(self):
+        return self.final_status == 'cancelled'
+    
     def is_processing(self):
         return (self.ocr_status in ['running', 'pending'] or 
                 self.whisper_status in ['running', 'pending'] or
                 self.llm_status in ['running', 'pending'])
+    
+    def can_cancel(self):
+        if self.final_status in ('done', 'failed', 'cancelled'):
+            return False
+        return True
 
 class Lecture(db.Model):
     __tablename__ = 'lectures'

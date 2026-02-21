@@ -31,6 +31,11 @@
                             <td><span class="status-badge status-{{ job.final_status }}">{{ job.final_status }}</span></td>
                             <td>
                                 <a href="{{ url_for('job_status', job_id=job.id) }}" class="btn btn-small">View</a>
+                                {% if job.can_cancel() %}
+                                    <form method="POST" action="{{ url_for('job_cancel', job_id=job.id) }}" style="display: inline;" onsubmit="return confirm('Cancel this job?');">
+                                        <button type="submit" class="btn btn-small btn-cancel">Cancel</button>
+                                    </form>
+                                {% endif %}
                                 {% if job.final_status == 'done' and job.lecture %}
                                     <a href="{{ url_for('lecture_view', lecture_id=job.lecture.id) }}" class="btn btn-small">View Lecture</a>
                                 {% endif %}

@@ -7,17 +7,29 @@
     <h2>Job Status #{{ job.id }}</h2>
     
     <div class="status-grid">
-        <div class="status-card">
+        <div class="status-card {% if job.ocr_status == 'running' %}status-card-loading{% endif %}">
             <h3>OCR Status</h3>
-            <span class="status-badge status-{{ job.ocr_status }}">{{ job.ocr_status }}</span>
+            {% if job.ocr_status == 'running' %}
+                <span class="status-badge status-running"><span class="spinner-small"></span> Running</span>
+            {% else %}
+                <span class="status-badge status-{{ job.ocr_status }}">{{ job.ocr_status }}</span>
+            {% endif %}
         </div>
-        <div class="status-card">
+        <div class="status-card {% if job.whisper_status == 'running' %}status-card-loading{% endif %}">
             <h3>Whisper Status</h3>
-            <span class="status-badge status-{{ job.whisper_status }}">{{ job.whisper_status }}</span>
+            {% if job.whisper_status == 'running' %}
+                <span class="status-badge status-running"><span class="spinner-small"></span> Running</span>
+            {% else %}
+                <span class="status-badge status-{{ job.whisper_status }}">{{ job.whisper_status }}</span>
+            {% endif %}
         </div>
-        <div class="status-card">
+        <div class="status-card {% if job.llm_status == 'running' %}status-card-loading{% endif %}">
             <h3>LLM Status</h3>
-            <span class="status-badge status-{{ job.llm_status }}">{{ job.llm_status }}</span>
+            {% if job.llm_status == 'running' %}
+                <span class="status-badge status-running"><span class="spinner-small"></span> Running</span>
+            {% else %}
+                <span class="status-badge status-{{ job.llm_status }}">{{ job.llm_status }}</span>
+            {% endif %}
         </div>
         <div class="status-card">
             <h3>Final Status</h3>
@@ -38,16 +50,25 @@
         </div>
     {% elif job.final_status == 'failed' %}
         <div class="error-box">
-            <p>Job processing failed. Please check the logs or try uploading again.</p>
+            <p><strong>Job failed.</strong> {% if job.status_message %}This service failed: {{ job.status_message }}{% else %}Please check the logs or try uploading again.{% endif %}</p>
+        </div>
+    {% elif job.final_status == 'cancelled' %}
+        <div class="info-box cancelled-box">
+            <p>This job was cancelled. You can upload a new video to start again.</p>
         </div>
     {% else %}
-        <div class="info-box">
-            <p>Job is being processed. This page will auto-refresh.</p>
+        <div class="info-box job-loading-box">
+            <p class="job-loading-text"><span class="spinner"></span> Processing… OCR and Whisper run first, then LLM. This page will auto-refresh every 5 seconds.</p>
+        </div>
+        <div class="action-buttons" style="margin-top: 16px;">
+            <form method="POST" action="{{ url_for('job_cancel', job_id=job.id) }}" style="display: inline;" onsubmit="return confirm('Cancel this job? OCR/Whisper in progress will finish but LLM will not run.');">
+                <button type="submit" class="btn btn-cancel">Cancel job</button>
+            </form>
         </div>
     {% endif %}
 </div>
 
-{% if job.final_status not in ['done', 'failed'] %}
+{% if job.final_status not in ['done', 'failed', 'cancelled'] %}
 <script>
     setTimeout(function() {
         location.reload();

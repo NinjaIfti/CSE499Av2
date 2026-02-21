@@ -3,12 +3,14 @@ import json
 from datetime import datetime
 from dotenv import load_dotenv
 from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, session
+from sqlalchemy import text
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 from config import Config
 from models import db, User, Job, Lecture, Chat
 from services.orchestrator import OrchestratorService
 from services.chat_service import ChatService
+from services.health_check import check_all_services
 import threading
 
 load_dotenv()
@@ -33,6 +35,11 @@ def init_db():
     """Initialize database and create tables"""
     with app.app_context():
         db.create_all()
+        try:
+            db.session.execute(text("ALTER TABLE jobs ADD COLUMN status_message TEXT"))
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
         
         # Create default user if none exists
         if User.query.count() == 0:
@@ -156,17 +163,16 @@ def upload():
         job.video_path = video_path
         db.session.commit()
         
-        # Start processing in background thread
+        # Start processing in background thread (pass app so worker threads get valid context)
         def process_in_background():
             with app.app_context():
                 try:
                     orchestrator = get_orchestrator()
-                    orchestrator.process_job(job.id)
+                    orchestrator.process_job(job.id, flask_app=app)
                 except Exception as e:
-                    app.logger.error(f"Job {job.id} processing error: {str(e)}")
+                    app.logger.exception(f"Job {job.id} processing error: {e}")
         
-        thread = threading.Thread(target=process_in_background)
-        thread.daemon = True
+        thread = threading.Thread(target=process_in_background, daemon=True)
         thread.start()
         
         flash(f'Video uploaded successfully! Job ID: {job.id}. Processing started.', 'success')
@@ -195,6 +201,27 @@ def job_status(job_id):
     
     return render_template('job_status.html', job=job)
 
+@app.route('/jobs/<int:job_id>/cancel', methods=['POST'])
+@login_required
+def job_cancel(job_id):
+    """Cancel a pending or in-progress job"""
+    user = get_current_user()
+    job = Job.query.get_or_404(job_id)
+    
+    if job.user_id != user.id:
+        flash('Access denied.', 'error')
+        return redirect(url_for('jobs'))
+    
+    if not job.can_cancel():
+        flash('This job cannot be cancelled.', 'warning')
+        return redirect(url_for('job_status', job_id=job_id))
+    
+    job.final_status = 'cancelled'
+    job.status_message = 'Cancelled by user'
+    db.session.commit()
+    flash('Job cancelled.', 'success')
+    return redirect(url_for('job_status', job_id=job_id))
+
 @app.route('/api/jobs/<int:job_id>/status')
 @login_required
 def api_job_status(job_id):
@@ -206,6 +233,21 @@ def api_job_status(job_id):
         return jsonify({'error': 'Access denied'}), 403
     
     return jsonify(job.to_dict())
+
+@app.route('/api/services/status')
+@login_required
+def api_services_status():
+    """Check if OCR, Whisper, LLM services are reachable for debugging."""
+    try:
+        result = check_all_services()
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({
+            "ocr": {"status": "down", "message": str(e)[:80], "url": None},
+            "whisper": {"status": "down", "message": str(e)[:80], "url": None},
+            "llm": {"status": "down", "message": str(e)[:80], "url": None},
+            "all_up": False,
+        })
 
 @app.route('/lectures/<int:lecture_id>')
 @login_required

@@ -5,14 +5,45 @@
 {% block content %}
 <div class="upload-container">
     <h2>Upload Lecture Video</h2>
+
+    <div class="services-status-card">
+        <h3>Service status</h3>
+        <p class="services-status-hint">All services must be running before upload. Status is checked when the page loads.</p>
+        <div class="services-status-list" id="servicesStatus">
+            <div class="service-status-item" id="status-ocr">
+                <span class="status-dot status-pending" id="dot-ocr"></span>
+                <span class="service-name">OCR</span>
+                <span class="service-message" id="msg-ocr">Checking…</span>
+            </div>
+            <div class="service-status-item" id="status-whisper">
+                <span class="status-dot status-pending" id="dot-whisper"></span>
+                <span class="service-name">Whisper</span>
+                <span class="service-message" id="msg-whisper">Checking…</span>
+            </div>
+            <div class="service-status-item" id="status-llm">
+                <span class="status-dot status-pending" id="dot-llm"></span>
+                <span class="service-name">LLM</span>
+                <span class="service-message" id="msg-llm">Checking…</span>
+            </div>
+        </div>
+        <div class="services-status-actions">
+            <button type="button" class="btn btn-secondary btn-small" id="refreshServices">Refresh status</button>
+        </div>
+    </div>
+
     <div class="upload-card">
-        <form method="POST" action="{{ url_for('upload') }}" enctype="multipart/form-data">
+        <form method="POST" action="{{ url_for('upload') }}" enctype="multipart/form-data" id="uploadForm">
             <div class="form-group">
                 <label for="video">Select Video File</label>
                 <input type="file" id="video" name="video" accept="video/*" required>
                 <small>Supported formats: MP4, AVI, MOV, MKV, WebM (Max 500MB)</small>
             </div>
-            <button type="submit" class="btn btn-primary btn-block">Upload and Process</button>
+            <div class="form-group" id="servicesWarning" style="display: none;">
+                <div class="alert alert-warning">
+                    One or more services are down. Upload may fail. Start the Colab notebooks (OCR, Whisper, LLM) and ensure ngrok URLs in .env are correct, then refresh status above.
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary btn-block" id="submitBtn">Upload and Process</button>
         </form>
     </div>
     
@@ -27,4 +58,53 @@
         </ol>
     </div>
 </div>
+
+<script>
+(function() {
+    var api = '/api/services/status';
+    function updateUi(data) {
+        var services = ['ocr', 'whisper', 'llm'];
+        services.forEach(function(key) {
+            var s = data[key] || {};
+            var dot = document.getElementById('dot-' + key);
+            var msg = document.getElementById('msg-' + key);
+            if (!dot || !msg) return;
+            dot.className = 'status-dot status-' + (s.status === 'up' ? 'up' : 'down');
+            msg.textContent = s.status === 'up' ? 'Running' : (s.message || 'Down');
+        });
+        var warn = document.getElementById('servicesWarning');
+        var btn = document.getElementById('submitBtn');
+        if (data.all_up) {
+            if (warn) warn.style.display = 'none';
+            if (btn) btn.disabled = false;
+        } else {
+            if (warn) warn.style.display = 'block';
+            if (btn) btn.disabled = false;
+        }
+    }
+    function fetchStatus() {
+        var services = ['ocr', 'whisper', 'llm'];
+        services.forEach(function(key) {
+            var dot = document.getElementById('dot-' + key);
+            var msg = document.getElementById('msg-' + key);
+            if (dot) dot.className = 'status-dot status-pending';
+            if (msg) msg.textContent = 'Checking…';
+        });
+        fetch(api)
+            .then(function(r) { return r.ok ? r.json() : r.json().then(function(j) { throw new Error(j.error || r.status); }); })
+            .then(updateUi)
+            .catch(function(e) {
+                updateUi({
+                    ocr: { status: 'down', message: e.message || 'Check failed' },
+                    whisper: { status: 'down', message: e.message || 'Check failed' },
+                    llm: { status: 'down', message: e.message || 'Check failed' },
+                    all_up: false
+                });
+            });
+    }
+    var refreshBtn = document.getElementById('refreshServices');
+    if (refreshBtn) refreshBtn.addEventListener('click', fetchStatus);
+    fetchStatus();
+})();
+</script>
 {% endblock %}

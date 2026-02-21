@@ -16,8 +16,8 @@ class Config:
     POLL_INTERVAL = int(os.environ.get('POLL_INTERVAL', '5'))
     MAX_POLL_ATTEMPTS = int(os.environ.get('MAX_POLL_ATTEMPTS', '120'))
     
-    # File upload settings
-    MAX_CONTENT_LENGTH = 500 * 1024 * 1024  # 500MB max file size
+    # File upload settings (500MB max)
+    MAX_CONTENT_LENGTH = int(os.environ.get('MAX_CONTENT_LENGTH', 500 * 1024 * 1024))
     UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER') or 'storage'
     ALLOWED_EXTENSIONS = {'mp4', 'avi', 'mov', 'mkv', 'webm'}
     
